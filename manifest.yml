@@ -1,14 +1,15 @@
 ---
 applications:
 - name: crimeharvest
-  memory: 128M
+  memory: 256M
   disk_quota: 128M
   host: crimeharvest
   command: node app.js
   path: .
+  no-route: true
   domain: mybluemix.net
   instances: 1
   env:
-    CLOUDANTDB: crimesample
-    CLOUDANTPASSWORD: genjisan
-    CLOUDANTUSER: rajsingh
+    CLOUDANTDB: crimes
+    CLOUDANTPASSWORD: NVFH8ReUf9cnz
+    CLOUDANTUSER: opendata

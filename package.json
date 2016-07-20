@@ -26,9 +26,9 @@
   "homepage": "https://github.com/rajrsingh/crimeharvest/",
   "dependencies": {
     "cloudant": "^1.0.0-beta3",
-    "express": "^4.11.1",
-	"request": "2.48.x", 
-	"cron": "1.0.5", 
-	"node-socrata": "^0.0.4"
+    "request": "~2.73.0", 
+    "cron": "~1.1.0", 
+    "node-socrata": "^0.0.50", 
+    "twilio": "~2.9.1"
   }
 }
