@@ -9,7 +9,7 @@ var dbname = process.env.CLOUDANTDB || process.argv[2]; //'crimes';
 //-- end Cloudant
 
 //-- Repeating job to send messages
-var thejob = new CronJob('00 22 * * * *', harvestCrimes); // every day at about 3am GMT
+var thejob = new CronJob('00 00 22 * * *', harvestCrimes); // every day at about 3am GMT
 thejob.start();
 
 function harvestCrimes() {
@@ -18,7 +18,88 @@ function harvestCrimes() {
 	harvestSFCrimes();
 	harvestBatonRougeCrimes(); 
 	harvestChicagoCrimes();
+	harvestPhillyCrimes();
 }
+
+/**
+ * Queries Philly open data for yesterday's crimes and writes them to Cloudant
+ */
+function harvestPhillyCrimes() {
+	var city = 'Philly';
+	console.log('Harvesting ' + city + ' crimes...');
+	var msg = '';
+	var config = {
+		hostDomain: 'https://data.phila.gov', 
+		resource: 'sspu-uyfa.json' 
+	};
+	var soda = new Socrata(config);
+
+	// Configure the date query
+	var d = new Date();
+	var yest = new Date();
+	yest.setDate(d.getDate() - 1);
+	dstring = d.toISOString().slice(0, 10); d.getDate();
+	yeststring = yest.toISOString().slice(0, 10);
+
+	var where = "dispatch_date_time>='" + yeststring + "' AND dispatch_date_time<'" + dstring + "'";
+
+	Cloudant({account:dbuser, password:password}, function(er, cloudant) {
+		if (er) return console.log('Error connecting to Cloudant account %s: %s', me, er.message);
+
+		var thedb = cloudant.db.use(dbname); // specify the database we are going to use
+		var newcrimes = new Array();
+		var params = { 
+			$select: ['dc_key', 'shape', 'dispatch_date_time', 'ucr_general', 'text_general_code'], 
+			$where: where, 
+			$limit: 50000
+		};
+
+		soda.get(params, function(connecterr, response, data) {
+			if ( connecterr ) {
+				logMessage(city, connecterr);
+				console.log(connecterr);
+				return;
+			}
+
+			// Even if we get data back, let's run through some sanity checks
+			var mincrimes = 15;
+			if ( data.length < mincrimes) logMessage(city, "POSSIBLE ERROR: less than "+mincrimes+" found for day "+where);
+
+			//-- Process each record received
+			for (var i = 0; i < data.length; i++) {
+				var thecrime = data[i];
+				var crimedate = new Date(thecrime.dispatch_date_time);
+
+				// create the document to insert
+				var rec = {
+					_id: city+thecrime.dc_key, 
+					type: "Feature", 
+					properties: {
+						compnos: thecrime.dc_key, 
+						source: city, 
+						type: thecrime.ucr_general,
+						desc: thecrime.text_general_code,  
+						timestamp: crimedate.getTime(), 
+						updated: Date.now()
+					}
+				};
+
+				// location
+				if (thecrime.shape && thecrime.shape.coordinates) {
+					rec.geometry = { type: "Point", coordinates: thecrime.shape.coordinates};
+				}
+
+				newcrimes.push(rec);
+			} // end for each crime
+
+			thedb.bulk({'docs':newcrimes}, null, function(err4, body) {
+				if ( err4 ) logMessage(city, "Error writing new crimes: "+err4);
+			});
+
+			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes");
+		}); // end soda.get
+	}); // end Cloudant connect
+} // end harvest Philly
 
 /**
  * Queries Chicago open data for yesterday's crimes and writes them to Cloudant
@@ -71,7 +152,7 @@ function harvestChicagoCrimes() {
 
 				// create the document to insert
 				var rec = {
-					_id: thecrime.id, 
+					_id: city+thecrime.id, 
 					type: "Feature", 
 					properties: {
 						compnos: thecrime.id, 
@@ -79,7 +160,8 @@ function harvestChicagoCrimes() {
 						type: thecrime.fbi_code,
 						iucr: thecrime.iucr, 
 						desc: thecrime.primary_type+'>'+thecrime.description,  
-						timestamp: crimedate.getTime()
+						timestamp: crimedate.getTime(), 
+						updated: Date.now()
 					}
 				};
 
@@ -157,14 +239,15 @@ function harvestBatonRougeCrimes() {
 
 				// create the document to insert
 				var rec = {
-					_id: thecrime.file_number, 
+					_id: city+thecrime.file_number, 
 					type: "Feature", 
 					properties: {
 						compnos: thecrime.file_number, 
 						source: city, 
 						type: thecrime.crime,
 						desc: thecrime.offense_desc,  
-						timestamp: crimedate.getTime()
+						timestamp: crimedate.getTime(), 
+						updated: Date.now()
 					}
 				};
 
@@ -234,14 +317,15 @@ function harvestSFCrimes(options) {
 
 				// create the document to insert
 				var rec = {
-					_id: thecrime.incidntnum, 
+					_id: city+thecrime.incidntnum, 
 					type: "Feature", 
 					properties: {
 						compnos: thecrime.incidntnum, 
 						source: city, 
 						type: thecrime.category,
-						desc: thecrime.descript,  
-						timestamp: crimedate.getTime()
+						desc: thecrime.descript,
+						timestamp: crimedate.getTime(), 
+						updated: Date.now()
 					}
 				};
 
@@ -283,133 +367,6 @@ function logMessage(cityname, messageinfo) {
 		});
 	});
 }
-
-/**
- * Queries Boston open data for yesterday's crimes and writes them to Cloudant
- */
-function harvestBostonCrimes() {
-	console.log('Harvesting Boston crimes...');
-	var config = {
-		hostDomain: 'http://data.cityofboston.gov', 
-		resource: '7cdf-6fgx' 
-		// XAppToken: process.env.SOCRATA_APP_TOKEN || 'registered-app-token'
-	};
-	var soda = new Socrata(config);
-
-	// Configure the date query
-	var d = new Date();
-	var yest = new Date();
-	yest.setDate(d.getDate() - 1);
-	dstring = d.toISOString().slice(0, 10); d.getDate();
-	yeststring = yest.toISOString().slice(0, 10);
-
-	var where = "fromdate>='" + yeststring + "' AND fromdate<'" + dstring + "'";
-	// var where = "fromdate>='2014-11-07' AND fromdate<'2014-11-08'";
-	params = { 
-		$select: ['compnos', 'naturecode', 'fromdate', 'main_crimecode', 'location', 'domestic', 'shooting', 'reptdistrict', 'weapontype', 'reportingarea', 'streetname', 'day_week'],
-		$where: where
-	};
-
-	Cloudant({account:dbuser, password:password}, function(er, cloudant) {
-		if (er) return console.log('Error connecting to Cloudant account %s: %s', me, er.message);
-		// specify the database we are going to use
-		var thedb = cloudant.db.use(dbname);
-		var logdb = cloudant.db.use(dbname+'_log');
-
-		var newcrimes = new Array();
-		//-- get Boston
-		soda.get(params, function(err, response, data) {
-			if ( err ) {
-				errmsg = {
-					time: new Date().getTime(), 
-					msg: "Query for boston data failed: "+where, 
-					app: 'crimeharvest'
-				};
-				console.log("crimeharvest query for boston data failed: "+where);
-				logdb.insert(errmsg, function(err2, body) {
-					if ( err2 ) {
-						console.log("Error logging error message: " + err2);
-					}
-				});
-			}
-
-			// Even if we get data back, let's run through some sanity checks
-			var mincrimes = 35;
-			var msg = '';
-			if ( data.length < mincrimes) {
-				var fewcrimes = {
-					time: new Date().getTime(), 
-					msg: "POSSIBLE ERROR: less than "+mincrimes+" found for "+where, 
-					app: 'crimeharvest'
-				};
-				msg += JSON.stringify(fewcrimes);
-				logdb.insert(fewcrimes, function(err, body) {
-					if ( err ) {
-						console.log(fewcrimes.msg);
-					}
-				});
-			}
-			// end sanity checks
-
-			//-- Process each record received
-			for (var i = 0; i < data.length; i++) {
-				var thecrime = data[i];
-				// var thetime = new Date(thecrime.fromdate);
-
-				// Create the document to insert
-				var rec = {
-					_id: thecrime.compnos,
-					type: "Feature",
-					properties: {
-						compnos: thecrime.compnos,
-						source: "boston", 
-						naturecode: thecrime.naturecode,
-						main_crimecode: thecrime.main_crimecode,
-						domestic: (thecrime.domestic=='No'?false:true),
-						shooting: (thecrime.shooting=='No'?false:true),
-						reptdistrict: thecrime.reptdistrict,
-						reptarea: thecrime.reptarea, 
-						streetname: thecrime.streetname, 
-						day_week: thecrime.day_week, 
-						fromdate: thecrime.fromdate
-					}
-				};
-
-				// location
-				var lon = thecrime.location.longitude;
-				var lat = thecrime.location.latitude;
-				if ( lon && lat ) {
-					lon = parseFloat(lon);
-					lat = parseFloat(lat);
-					if ( lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90 )
-						rec.geometry = { type: "Point", coordinates: [ lon, lat ]};
-				} else {
-					console.error("LOCS: "+locs.toString());
-				}
-
-				newcrimes.push(rec);
-			} // end for each crime
-			
-			thedb.bulk({'docs':newcrimes}, null, function(err4, body) {
-				if ( err4 ) {
-					logdb.insert({
-						time: new Date().getTime(), 
-						msg: "Error writing new crimes: ", 
-						err: err4
-					}, function(err5, body) {
-						if ( err5 ) {
-							console.error(err5);
-						}
-					});
-				}
-				msg = "inserted " + newcrimes.length + " new Boston crimes";
-				console.log("Boston harvesting complete with messages: "+msg);
-			});
-
-		}); // end soda.get		
-	}); // end Cloudant connect
-	// if (res) res.send("Harvesting Boston crimes from Socrata...");
-} // end harvest boston crimes
 
 //-- Twilio SMS sending service settings
 var accountSid = 'ACa784a1107f8b9c468baa5541b92a1b3a';
