@@ -8,3 +8,5 @@ Baton Rouge: https://data.brla.gov/Public-Safety/Baton-Rouge-Crime-Incidents/fab
 Providence: https://data.providenceri.gov/Public-Safety/Providence-Police-Department-Arrest-Log-Past-30-Da/vank-fyx9
 
 Atlanta: http://opendata.atlantapd.org/Crimedata/Default.aspx
+
+UK: https://data.police.uk/data/
