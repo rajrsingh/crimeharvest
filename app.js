@@ -118,6 +118,7 @@ function harvestChicagoCrimes() {
 	var d = new Date();
 	var yest = new Date();
 	yest.setDate(d.getDate() - 8);
+
 	dstring = d.toISOString().slice(0, 10); d.getDate();
 	yeststring = yest.toISOString().slice(0, 10);
 
