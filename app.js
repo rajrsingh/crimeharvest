@@ -361,6 +361,9 @@ function logMessage(cityname, messageinfo) {
 		app: 'crimeharvest'
 	};
 	console.log(JSON.stringify(msg));
+	// send Raj an SMS
+	sendAlert(JSON.stringify(msg));
+
 	Cloudant({account:dbuser, password:password}, function(er, cloudant) {
 		var logdb = cloudant.db.use(dbname+'_log');
 		logdb.insert(msg, function (err2, body) {
@@ -384,16 +387,15 @@ var twilio = require('twilio')(accountSid, authToken);
  * Sends a text message to Raj.
  * With a user management system, and a non-trial Twilio account, this could be expanded to text others
  */
-function sendAlert(req, res) {
-	var msg = "SafetyPulse warning: you are approaching a high crime area rated: " + req.query.rating;
-	// twilio.messages.create({
-	//     body: msg,
-	//     to: "+16176429372",
-	//     from: "+16179103437"
-	// }, function(err, message) {
-	// 	if (err) res.send(err);
-	//     res.send({"sent_message": msg, "message_SID": message.sid});
-	// });
+function sendAlert(message) {
+	twilio.messages.create({
+	    body: message,
+	    to: "+16176429372",
+	    from: "+16179103437"
+	}, function(err, message) {
+		if (err) res.send(err);
+	    res.send({"sent_message": msg, "message_SID": message.sid});
+	});
 }
 
 function sendSMS(msg) {
@@ -407,10 +409,3 @@ function sendSMS(msg) {
 	});
 }
 
-// var port = (process.env.VCAP_APP_PORT || 8192);
-// var host = (process.env.VCAP_APP_HOST || 'localhost');
-// var http = require('http');
-// http.createServer(function(req, res) {
-//   res.writeHead(200, {'Content-Type' : 'text/plain'});
-//   res.end('Hello World\n');
-// }).listen(port, host);
