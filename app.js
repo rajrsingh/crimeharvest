@@ -178,7 +178,7 @@ function harvestChicagoCrimes() {
 				if ( err4 ) logMessage(city, "Error writing new crimes: "+err4);
 			});
 
-			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes");
+			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes: "+where);
 		}); // end soda.get
 	}); // end Cloudant connect
 } // end harvest Chicago
@@ -264,7 +264,7 @@ function harvestBatonRougeCrimes() {
 				if ( err4 ) logMessage(city, "Error writing new crimes: "+err4);
 			});
 
-			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes");
+			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes: "+where);
 		}); // end soda.get
 	}); // end Cloudant connect
 } // end harvest BatonRouge
@@ -348,8 +348,8 @@ function harvestSFCrimes(options) {
 			thedb.bulk({'docs':newcrimes}, null, function(err4, body) {
 				if ( err4 ) logMessage(city, "Error writing new crimes: "+err4);
 			});
-			msg = "inserted " + newcrimes.length + " new crimes";
-			logMessage(city, msg);
+
+			logMessage(city, "SUCCESSFULLY inserted " + newcrimes.length + " new crimes: "+where);
 		}); // end soda.get
 	}); // end Cloudant connect
 } // end harvest SF
