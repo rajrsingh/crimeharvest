@@ -19,7 +19,7 @@
 	"crime"
   ],
   "author": "Raj Singh (https://cloudant.com/)",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/rajrsingh/crimeharvest/issues"
   },
