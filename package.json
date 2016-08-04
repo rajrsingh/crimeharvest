@@ -1,10 +1,10 @@
 {
   "name": "crimeharvest",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "moves crime data from Socrata to Cloudant",
   "main": "app.js",
   "scripts": {
-    "start": "./app.js"
+    "start": "node ./app.js"
   },
   "repository": {
     "type": "git",
