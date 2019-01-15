@@ -97,9 +97,9 @@ function logMessage(cityname, messageinfo) {
 }
 
 //-- Twilio SMS sending service settings
-var accountSid = 'ACa784a1107f8b9c468baa5541b92a1b3a';
-var authToken = '5ddd13ecb64fff0f5f0537ab2cc33c3f';
-var TWILIO_CRIMEHARVEST_MESSAGINGSERVICESID = 'MG2e81953d80cb5ebde84c25af6967dfa3'
+var accountSid = '';
+var authToken = '';
+var TWILIO_CRIMEHARVEST_MESSAGINGSERVICESID = ''
 if ( process.env.VCAP_SERVICES && process.env.VCAP_SERVICES['user-provided'] ) {
   accountSid = process.env.VCAP_SERVICES['user-provided'][0].credentials.accountSID;
   authToken = process.env.VCAP_SERVICES['user-provided'][0].credentials.authToken;
@@ -115,8 +115,8 @@ var twilio = require('twilio')(accountSid, authToken);
  */
 function sendSMS(msg) {
 	twilio.sendMessage({
-		messagingServiceSid: 'MG9752274e9e519418a7406176694466fa',
-	    to: "+16176429372",
+		messagingServiceSid: '',
+	    to: "+1",
 	    body: msg
 	}, function(err, message) {
 		if (err) 
